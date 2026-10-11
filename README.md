@@ -1,12 +1,1 @@
-{
-"name": "ubk-base",
-"version": "1.0.0",
-"description": "UBK Base App Development Platform",
-"main": "server.js",
-"scripts": {
-"start": "node server.js"
-},
-"dependencies": {
-"express": "^5.1.0"
-}
-}
+
