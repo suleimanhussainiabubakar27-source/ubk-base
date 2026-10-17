@@ -1,1 +1,208 @@
-Create index.html for UBK Base
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UBK Base</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #172033;
+    }
+
+    header {
+      background: #075e54;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    main {
+      max-width: 700px;
+      margin: 25px auto;
+      padding: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #0001;
+    }
+
+    input, textarea, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+
+    input, textarea {
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #075e54;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .project {
+      background: #f1f5f9;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+
+    #status {
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>UBK Base</h1>
+    <p>Your App Development Platform</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Create Project</h2>
+
+      <input id="projectName"
+        type="text"
+        placeholder="Enter project name">
+
+      <textarea id="projectDescription"
+        placeholder="Project description"></textarea>
+
+      <button id="createButton" onclick="createProject()">
+        Create Project
+      </button>
+
+      <p id="status">Ready</p>
+    </section>
+
+    <section class="card">
+      <h2>My Projects</h2>
+      <button onclick="loadProjects()">Refresh Projects</button>
+      <div id="projectsList">Loading projects...</div>
+    </section>
+
+    <section class="card">
+      <h2>UBK Base Services</h2>
+      <p>Database: Supabase</p>
+      <p>Authentication: Coming next</p>
+      <p>Storage: Coming next</p>
+      <p>API Management: Coming next</p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from
+      "https://esm.sh/@supabase/supabase-js@2";
+
+    // Saka Project URL da Publishable key naka a nan gaba.
+    const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+    const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+    let supabase = null;
+
+    if (
+      SUPABASE_URL.startsWith("https://") &&
+      !SUPABASE_URL.includes("PASTE_YOUR")
+      && !SUPABASE_KEY.includes("PASTE_YOUR")
+    ) {
+      supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    const status = document.getElementById("status");
+    const projectsList = document.getElementById("projectsList");
+
+    window.createProject = async function () {
+      const name = document.getElementById("projectName").value.trim();
+      const description =
+        document.getElementById("projectDescription").value.trim();
+
+      if (!name) {
+        status.textContent = "Please enter a project name.";
+        return;
+      }
+
+      if (!supabase) {
+        status.textContent =
+          "Supabase URL and Publishable key have not been added yet.";
+        return;
+      }
+
+      status.textContent = "Creating project...";
+
+      const { error } = await supabase
+        .from("projects")
+        .insert([{ name, description }]);
+
+      if (error) {
+        status.textContent = "Error: " + error.message;
+        return;
+      }
+
+      document.getElementById("projectName").value = "";
+      document.getElementById("projectDescription").value = "";
+
+      status.textContent = "Project created successfully!";
+      await window.loadProjects();
+    };
+
+    window.loadProjects = async function () {
+      if (!supabase) {
+        projectsList.textContent =
+          "Add your Supabase URL and Publishable key to connect the database.";
+        return;
+      }
+
+      projectsList.textContent = "Loading...";
+
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, description, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        projectsList.textContent = "Error: " + error.message;
+        return;
+      }
+
+      projectsList.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        projectsList.textContent = "No projects yet.";
+        return;
+      }
+
+      data.forEach(project => {
+        const item = document.createElement("div");
+        item.className = "project";
+
+        const title = document.createElement("h3");
+        title.textContent = project.name;
+
+        const description = document.createElement("p");
+        description.textContent = project.description || "";
+
+        item.append(title, description);
+        projectsList.appendChild(item);
+      });
+    };
+
+    window.loadProjects();
+  </script>
+</body>
+</html>
