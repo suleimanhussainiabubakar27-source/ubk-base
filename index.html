@@ -1,1 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#071b16">
+  <title>UBK Base — Project Dashboard</title>
+  <meta name="description" content="UBK Base project management dashboard.">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <style>
+    :root {
+      --bg: #071b16;
+      --panel: #102720;
+      --panel2: #17352b;
+      --green: #42e6a4;
+      --text: #f1fff8;
+      --muted: #9bb9ab;
+      --border: rgba(255,255,255,.1);
+      --danger: #ff7777;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at top right, #164c38 0, transparent 40%),
+        var(--bg);
+    }
+
+    button, input, textarea, select { font: inherit; }
+
+    button { cursor: pointer; }
+
+    .hidden { display: none !important; }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 23px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 15px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      border-radius: 14px;
+      background: var(--green);
+      color: #06251a;
+      font-weight: 900;
+    }
+
+    .muted { color: var(--muted); }
+
+    .button {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 16px;
+      color: var(--text);
+      background: var(--panel2);
+      font-weight: 650;
+    }
+
+    .button.primary {
+      background: var(--green);
+      color: #05251a;
+      border-color: transparent;
+    }
+
+    .button.danger {
+      color: var(--danger);
+    }
+
+    .button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    main { padding: 35px 0 60px; }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      margin: 0 0 10px;
+      letter-spacing: -1.2px;
+    }
+
+    h2 { margin-top: 0; }
+
+    .card {
+      background: rgba(16,39,32,.94);
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      padding: 23px;
+    }
+
+    .auth-wrap {
+      max-width: 440px;
+      margin: 45px auto;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 5px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 23px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 11px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: var(--panel2);
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin: 17px 0 7px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 13px;
+      background: #091f18;
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--green);
+    }
+
+    textarea { resize: vertical; min-height: 95px; }
+
+    .full { width: 100%; margin-top: 20px; }
+
+    .message {
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 10px;
+      background: var(--panel2);
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { color: #ffc1c1; }
+    .message.success { color: var(--green); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 27px 0;
+    }
+
+    .stat-number {
+      font-size: 30px;
+      font-weight: 800;
+      margin-top: 10px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .toolbar input { flex: 1; }
+
+    .project-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .project {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .project h3 {
+      margin: 0 0 9px;
+      overflow-wrap: anywhere;
+    }
+
+    .project p {
+      color: var(--muted);
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #1d4837;
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .project-actions .button {
+      padding: 8px 11px;
+      font-size: 13px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0,0,0,.75);
+      overflow-y: auto;
+    }
+
+    .modal .card {
+      width: min(480px, 100%);
+      margin: auto;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 22px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 650px) {
+      header { padding: 17px 0; }
+      .brand { font-size: 18px; }
+      .stats { grid-template-columns: 1fr; }
+      .stat-number { font-size: 25px; }
+      .project-list { grid-template-columns: 1fr; }
+      .toolbar { flex-direction: column; }
+      main { padding-top: 27px; }
+      .card { padding: 19px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">UBK</div>
+        <div>
+          UBK Base
+          <div class="muted" style="font-size:11px;font-weight:500">
+            Project workspace
+          </div>
+        </div>
+      </div>
+      <button id="logoutBtn" class="button hidden">Log out</button>
+    </header>
+
+    <main>
+      <section id="authView" class="auth-wrap card">
+        <h1 style="font-size:30px">Welcome to UBK Base</h1>
+        <p class="muted">Sign in to manage your projects.</p>
+
+        <div class="tabs">
+          <button id="loginTab" class="tab active" type="button">Log in</button>
+          <button id="signupTab" class="tab" type="button">Sign up</button>
+        </div>
+
+        <form id="authForm">
+          <label for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email"
+                 placeholder="you@example.com" required>
+
+          <label for="password">Password</label>
+          <input id="password" type="password"
+                 autocomplete="current-password"
+                 minlength="6" placeholder="At least 6 characters" required>
+
+          <button id="authSubmit" class="button primary full" type="submit">
+            Log in
+          </button>
+        </form>
+
+        <div id="authMessage" class="message hidden" role="status"></div>
+      </section>
+
+      <section id="appView" class="hidden">
+        <h1>Your workspace</h1>
+        <p class="muted">Manage your projects from one place.</p>
+
+        <div class="stats">
+          <div class="card">
+            <div class="muted">Total projects</div>
+            <div id="totalCount" class="stat-number">0</div>
+          </div>
+          <div class="card">
+            <div class="muted">In progress</div>
+            <div id="activeCount" class="stat-number">0</div>
+          </div>
+          <div class="card">
+            <div class="muted">Completed</div>
+            <div id="doneCount" class="stat-number">0</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input id="searchInput" type="search"
+                 placeholder="Search projects...">
+          <button id="newProjectBtn" class="button primary">
+            + New project
+          </button>
+        </div>
+
+        <div id="appMessage" class="message hidden" role="status"></div>
+        <div id="projectList" class="project-list"></div>
+      </section>
+    </main>
+
+    <footer>UBK Base · Built for your ideas</footer>
+  </div>
+
+  <div id="projectModal" class="modal hidden">
+    <div class="card">
+      <h2 id="modalTitle">Create a project</h2>
+
+      <form id="projectForm">
+        <input id="projectId" type="hidden">
+
+        <label for="projectName">Project name</label>
+        <input id="projectName" maxlength="100"
+               placeholder="My new project" required>
+
+        <label for="projectDescription">Description</label>
+        <textarea id="projectDescription" maxlength="2000"
+                  placeholder="What is this project about?"></textarea>
+
+        <label for="projectStatus">Status</label>
+        <select id="projectStatus">
+          <option>Planning</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+
+        <button id="saveProjectBtn" class="button primary full" type="submit">
+          Save project
+        </button>
+        <button id="cancelModalBtn" class="button full" type="button">
+          Cancel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // Replace these with values from the SAME Supabase project.
+      const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+      const SUPABASE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY';
+
+      const $ = id => document.getElementById(id);
+
+      let supabaseClient = null;
+      let mode = 'login';
+      let projects = [];
+      let currentUser = null;
+
+      function message(id, text, type = '') {
+        const el = $(id);
+        el.textContent = text;
+        el.className = 'message' + (type ? ' ' + type : '');
+        el.classList.remove('hidden');
+      }
+
+      function clearMessage(id) {
+        $(id).textContent = '';
+        $(id).className = 'message hidden';
+      }
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        $('loginTab').classList.toggle('active', mode === 'login');
+        $('signupTab').classList.toggle('active', mode === 'signup');
+        $('authSubmit').textContent =
+          mode === 'login' ? 'Log in' : 'Create account';
+        $('password').autocomplete =
+          mode === 'login' ? 'current-password' : 'new-password';
+        clearMessage('authMessage');
+      }
+
+      function setBusy(button, busy, text) {
+        button.disabled = busy;
+        if (busy) {
+          button.dataset.originalText = button.textContent;
+          button.textContent = text;
+        } else {
+          button.textContent = button.dataset.originalText ||
+            button.textContent;
+        }
+      }
+
+      function showAuth() {
+        $('authView').classList.remove('hidden');
+        $('appView').classList.add('hidden');
+        $('logoutBtn').classList.add('hidden');
+      }
+
+      function showApp() {
+        $('authView').classList.add('hidden');
+        $('appView').classList.remove('hidden');
+        $('logoutBtn').classList.remove('hidden');
+      }
+
+      function safeError(error) {
+        return error && error.message
+          ? error.message
+          : 'Something went wrong. Please try again.';
+      }
+
+      async function handleAuth(event) {
+        event.preventDefault();
+        clearMessage('authMessage');
+
+        if (!supabaseClient) {
+          message('authMessage',
+            'Supabase is not configured. Check the URL and Publishable Key.',
+            'error');
+          return;
+        }
+
+        const email = $('email').value.trim();
+        const password = $('password').value;
+        const button = $('authSubmit');
+
+        setBusy(button, true, 'Please wait...');
+
+        try {
+          let result;
+
+          if (mode === 'signup') {
+            result = await supabaseClient.auth.signUp({
+              email,
+              password
+            });
+          } else {
+            result = await supabaseClient.auth.signInWithPassword({
+              email,
+              password
+            });
+          }
+
+          if (result.error) throw result.error;
+
+          if (mode === 'signup' && !result.data.session) {
+            message('authMessage',
+              'Account created. Check your email for the confirmation link, then log in.',
+              'success');
+            return;
+          }
+
+          currentUser = result.data.user;
+          await enterWorkspace();
+        } catch (error) {
+          message('authMessage', safeError(error), 'error');
+        } finally {
+          setBusy(button, false);
+        }
+      }
+
+      async function enterWorkspace() {
+        showApp();
+        clearMessage('appMessage');
+        await loadProjects();
+      }
+
+      async function loadProjects() {
+        $('projectList').textContent = 'Loading projects...';
+
+        try {
+          const { data, error } = await supabaseClient
+            .from('projects')
+            .select('id, name, description, status, created_at')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          projects = data || [];
+          renderProjects();
+        } catch (error) {
+          projects = [];
+          renderProjects();
+          message('appMessage',
+            'Could not load projects: ' + safeError(error) +
+            '. Check your table columns and Row Level Security policies.',
+            'error');
+        }
+      }
+
+      function renderProjects() {
+        const query = $('searchInput').value.trim().toLowerCase();
+
+        const visible = projects.filter(project =>
+          ((project.name || '') + ' ' + (project.description || ''))
+            .toLowerCase().includes(query)
+        );
+
+        $('totalCount').textContent = projects.length;
+        $('activeCount').textContent = projects.filter(p =>
+          p.status === 'In Progress'
+        ).length;
+        $('doneCount').textContent = projects.filter(p =>
+          p.status === 'Completed'
+        ).length;
+
+        const list = $('projectList');
+        list.replaceChildren();
+
+        if (!visible.length) {
+          const empty = document.createElement('div');
+          empty.className = 'card';
+          empty.textContent = query
+            ? 'No projects match your search.'
+            : 'No projects yet. Create your first project!';
+          list.appendChild(empty);
+          return;
+        }
+
+        visible.forEach(project => {
+          const card = document.createElement('article');
+          card.className = 'project';
+
+          const title = document.createElement('h3');
+          title.textContent = project.name || 'Untitled project';
+
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = project.status || 'Planning';
+
+          const description = document.createElement('p');
+          description.textContent =
+            project.description || 'No description provided.';
+
+          const actions = document.createElement('div');
+          actions.className = 'project-actions';
+
+          const edit = document.createElement('button');
+          edit.className = 'button';
+          edit.textContent = 'Edit';
+          edit.addEventListener('click', () => openModal(project));
+
+          const remove = document.createElement('button');
+          remove.className = 'button danger';
+          remove.textContent = 'Delete';
+          remove.addEventListener('click', () => deleteProject(project));
+
+          actions.append(edit, remove);
+          card.append(title, badge, description, actions);
+          list.appendChild(card);
+        });
+      }
+
+      function openModal(project = null) {
+        $('projectForm').reset();
+        $('projectId').value = project ? String(project.id) : '';
+        $('projectName').value = project ? project.name || '' : '';
+        $('projectDescription').value =
+          project ? project.description || '' : '';
+        $('projectStatus').value =
+          project && project.status ? project.status : 'Planning';
+        $('modalTitle').textContent =
+          project ? 'Edit project' : 'Create a project';
+        $('projectModal').classList.remove('hidden');
+      }
+
+      function closeModal() {
+        $('projectModal').classList.add('hidden');
+      }
+
+      async function saveProject(event) {
+        event.preventDefault();
+
+        const name = $('projectName').value.trim();
+        const description = $('projectDescription').value.trim();
+        const status = $('projectStatus').value;
+        const id = $('projectId').value;
+
+        if (!name) return;
+
+        const button = $('saveProjectBtn');
+        setBusy(button, true, 'Saving...');
+
+        try {
+          const record = {
+            name,
+            description,
+            status,
+            user_id: currentUser.id
+          };
+
+          let result;
+
+          if (id) {
+            result = await supabaseClient
+              .from('projects')
+              .update({
+                name,
+                description,
+                status
+              })
+              .eq('id', id)
+              .eq('user_id', currentUser.id);
+          } else {
+            result = await supabaseClient
+              .from('projects')
+              .insert(record);
+          }
+
+          if (result.error) throw result.error;
+
+          closeModal();
+          await loadProjects();
+          message('appMessage', 'Project saved successfully.', 'success');
+        } catch (error) {
+          message('appMessage',
+            'Could not save project: ' + safeError(error),
+            'error');
+        } finally {
+          setBusy(button, false);
+        }
+      }
+
+      async function deleteProject(project) {
+        if (!confirm('Delete "' + project.name + '"? This cannot be undone.')) {
+          return;
+        }
+
+        try {
+          const { error } = await supabaseClient
+            .from('projects')
+            .delete()
+            .eq('id', project.id)
+            .eq('user_id', currentUser.id);
+
+          if (error) throw error;
+
+          await loadProjects();
+          message('appMessage', 'Project deleted.', 'success');
+        } catch (error) {
+          message('appMessage',
+            'Could not delete project: ' + safeError(error),
+            'error');
+        }
+      }
+
+      async function logout() {
+        if (!supabaseClient) return;
+
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) {
+          message('appMessage', safeError(error), 'error');
+          return;
+        }
+
+        currentUser = null;
+        projects = [];
+        showAuth();
+        setMode('login');
+      }
+
+      function initialize() {
+        $('loginTab').addEventListener('click', () => setMode('login'));
+        $('signupTab').addEventListener('click', () => setMode('signup'));
+        $('authForm').addEventListener('submit', handleAuth);
+        $('logoutBtn').addEventListener('click', logout);
+        $('newProjectBtn').addEventListener('click', () => openModal());
+        $('cancelModalBtn').addEventListener('click', closeModal);
+        $('projectForm').addEventListener('submit', saveProject);
+        $('searchInput').addEventListener('input', renderProjects);
+
+        $('projectModal').addEventListener('click', event => {
+          if (event.target === $('projectModal')) closeModal();
+        });
+
+        document.addEventListener('keydown', event => {
+          if (event.key === 'Escape') closeModal();
+        });
+
+        const configured =
+          SUPABASE_URL.startsWith('https://') &&
+          SUPABASE_URL.includes('.supabase.co') &&
+          !SUPABASE_URL.includes('YOUR_') &&
+          SUPABASE_KEY.startsWith('sb_publishable_') &&
+          !SUPABASE_KEY.includes('YOUR_');
+
+        if (!configured) {
+          message('authMessage',
+            'Setup required: enter your Supabase Project URL and Publishabl
