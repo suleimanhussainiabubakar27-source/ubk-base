@@ -740,3 +740,37 @@
         if (!configured) {
           message('authMessage',
             'Setup required: enter your Supabase Project URL and Publishabl
+                          if (!window.supabase || !window.supabase.createClient) {
+          message('authMessage',
+            'Supabase library failed to load. Check your internet connection and refresh.',
+            'error');
+          return;
+        }
+
+        try {
+          supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+          );
+
+          supabaseClient.auth.getSession().then(({ data, error }) => {
+            if (error) {
+              message('authMessage', safeError(error), 'error');
+              return;
+            }
+
+            if (data.session) {
+              currentUser = data.session.user;
+              enterWorkspace();
+            }
+          });
+        } catch (error) {
+          message('authMessage', safeError(error), 'error');
+        }
+      }
+
+      initialize();
+    })();
+  </script>
+</body>
+</html>
